@@ -25,21 +25,22 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.statemachine.StateMachine;
-import org.springframework.statemachine.recipes.persist.PersistStateMachineHandler;
-import org.springframework.statemachine.recipes.persist.PersistStateMachineHandler.PersistStateChangeListener;
 import org.springframework.statemachine.state.State;
 import org.springframework.statemachine.transition.Transition;
 
 import demo.persist.Application.Order;
+import demo.persist.Application.OrderEvent;
+import demo.persist.Application.OrderState;
+import demo.persist.PersistStateMachineHandler.PersistStateChangeListener;
 
 public class Persist {
 
 	private final PersistStateMachineHandler handler;
 
-//tag::snippetA[]
+	// tag::snippetA[]
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
-//end::snippetA[]
+	// end::snippetA[]
 
 	private final PersistStateChangeListener listener = new LocalPersistStateChangeListener();
 
@@ -49,13 +50,11 @@ public class Persist {
 	}
 
 	public String listDbEntries() {
-		List<Order> orders = jdbcTemplate.query(
-		        "select id, state from orders",
-		        new RowMapper<Order>() {
-		            public Order mapRow(ResultSet rs, int rowNum) throws SQLException {
-		            	return new Order(rs.getInt("id"), rs.getString("state"));
-		            }
-		        });
+		List<Order> orders = jdbcTemplate.query("select id, state from orders", new RowMapper<Order>() {
+			public Order mapRow(ResultSet rs, int rowNum) throws SQLException {
+				return new Order(rs.getInt("id"), rs.getString("state"));
+			}
+		});
 		StringBuilder buf = new StringBuilder();
 		for (Order order : orders) {
 			buf.append(order);
@@ -64,33 +63,31 @@ public class Persist {
 		return buf.toString();
 	}
 
-//tag::snippetB[]
-	public void change(int order, String event) {
-		Order o = jdbcTemplate.queryForObject("select id, state from orders where id = ?",
-				new RowMapper<Order>() {
-					public Order mapRow(ResultSet rs, int rowNum) throws SQLException {
-						return new Order(rs.getInt("id"), rs.getString("state"));
-					}
-				}, new Object[] { order });
-		handler.handleEventWithStateReactively(MessageBuilder
-				.withPayload(event).setHeader("order", order).build(), o.state)
-			.subscribe();
+	// tag::snippetB[]
+	public void change(int order, OrderEvent event) {
+		Order o = jdbcTemplate.queryForObject("select id, state from orders where id = ?", new RowMapper<Order>() {
+			public Order mapRow(ResultSet rs, int rowNum) throws SQLException {
+				return new Order(rs.getInt("id"), rs.getString("state"));
+			}
+		}, new Object[] { order });
+		handler.handleEventWithStateReactively(MessageBuilder.withPayload(event).setHeader("order", order).build(),
+				o.state).subscribe();
 	}
 
-	//end::snippetB[]
+	// end::snippetB[]
 
-//tag::snippetC[]
+	// tag::snippetC[]
 	private class LocalPersistStateChangeListener implements PersistStateChangeListener {
 
 		@Override
-		public void onPersist(State<String, String> state, Message<String> message,
-				Transition<String, String> transition, StateMachine<String, String> stateMachine) {
+		public void onPersist(State<OrderState, OrderEvent> state, Message<OrderEvent> message,
+				Transition<OrderState, OrderEvent> transition, StateMachine<OrderState, OrderEvent> stateMachine) {
 			if (message != null && message.getHeaders().containsKey("order")) {
 				Integer order = message.getHeaders().get("order", Integer.class);
-				jdbcTemplate.update("update orders set state = ? where id = ?", state.getId(), order);
+				jdbcTemplate.update("update orders set state = ? where id = ?", state.getId().toString(), order);
 			}
 		}
 	}
-//end::snippetC[]
+	// end::snippetC[]
 
 }

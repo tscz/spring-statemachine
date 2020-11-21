@@ -22,57 +22,54 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.shell.Bootstrap;
 import org.springframework.statemachine.StateMachine;
 import org.springframework.statemachine.config.EnableStateMachine;
-import org.springframework.statemachine.config.StateMachineConfigurerAdapter;
+import org.springframework.statemachine.config.EnumStateMachineConfigurerAdapter;
 import org.springframework.statemachine.config.builders.StateMachineStateConfigurer;
 import org.springframework.statemachine.config.builders.StateMachineTransitionConfigurer;
-import org.springframework.statemachine.recipes.persist.PersistStateMachineHandler;
 
 @SpringBootApplication
-public class Application  {
+public class Application {
 
-//tag::snippetA[]
+	static enum OrderState {
+		PLACED, PROCESSING, SENT, DELIVERED;
+	}
+
+	static enum OrderEvent {
+		process, send, deliver;
+	}
+
+	// tag::snippetA[]
 	@Configuration
 	@EnableStateMachine
-	static class StateMachineConfig
-			extends StateMachineConfigurerAdapter<String, String> {
+	static class StateMachineConfig extends EnumStateMachineConfigurerAdapter<OrderState, OrderEvent> {
 
 		@Override
-		public void configure(StateMachineStateConfigurer<String, String> states)
-				throws Exception {
-			states
-				.withStates()
-					.initial("PLACED")
-					.state("PROCESSING")
-					.state("SENT")
-					.state("DELIVERED");
+		public void configure(StateMachineStateConfigurer<OrderState, OrderEvent> states) throws Exception {
+			states.withStates()//
+					.initial(OrderState.PLACED)//
+					.state(OrderState.PROCESSING)//
+					.state(OrderState.SENT)//
+					.state(OrderState.DELIVERED);
 		}
 
 		@Override
-		public void configure(StateMachineTransitionConfigurer<String, String> transitions)
-				throws Exception {
-			transitions
-				.withExternal()
-					.source("PLACED").target("PROCESSING")
-					.event("PROCESS")
-					.and()
-				.withExternal()
-					.source("PROCESSING").target("SENT")
-					.event("SEND")
-					.and()
-				.withExternal()
-					.source("SENT").target("DELIVERED")
-					.event("DELIVER");
+		public void configure(StateMachineTransitionConfigurer<OrderState, OrderEvent> transitions) throws Exception {
+			transitions//
+					.withExternal().source(OrderState.PLACED).target(OrderState.PROCESSING).event(OrderEvent.process)//
+					.and()//
+					.withExternal().source(OrderState.PROCESSING).target(OrderState.SENT).event(OrderEvent.send)//
+					.and()//
+					.withExternal().source(OrderState.SENT).target(OrderState.DELIVERED).event(OrderEvent.deliver);
 		}
 
 	}
-//end::snippetA[]
+	// end::snippetA[]
 
-//tag::snippetB[]
+	// tag::snippetB[]
 	@Configuration
 	static class PersistHandlerConfig {
 
 		@Autowired
-		private StateMachine<String, String> stateMachine;
+		private StateMachine<OrderState, OrderEvent> stateMachine;
 
 		@Bean
 		public Persist persist() {
@@ -85,16 +82,16 @@ public class Application  {
 		}
 
 	}
-//end::snippetB[]
+	// end::snippetB[]
 
-//tag::snippetC[]
+	// tag::snippetC[]
 	public static class Order {
 		int id;
-		String state;
+		OrderState state;
 
 		public Order(int id, String state) {
 			this.id = id;
-			this.state = state;
+			this.state = OrderState.valueOf(state);
 		}
 
 		@Override
@@ -103,7 +100,7 @@ public class Application  {
 		}
 
 	}
-//end::snippetC[]
+	// end::snippetC[]
 
 	public static void main(String[] args) throws Exception {
 		Bootstrap.main(args);

@@ -21,17 +21,17 @@ import org.springframework.shell.core.annotation.CliOption;
 import org.springframework.stereotype.Component;
 
 import demo.AbstractStateMachineCommands;
+import demo.persist.Application.OrderEvent;
+import demo.persist.Application.OrderState;
 import reactor.core.publisher.Mono;
 
 @Component
-public class StateMachineCommands extends AbstractStateMachineCommands<String, String> {
+public class StateMachineCommands extends AbstractStateMachineCommands<OrderState, OrderEvent> {
 
 	@CliCommand(value = "sm event", help = "Sends an event to a state machine")
-	public String event(@CliOption(key = { "", "event" }, mandatory = true, help = "The event") final String event) {
-		getStateMachine()
-			.sendEvent(Mono.just(MessageBuilder
-				.withPayload(event).build()))
-			.subscribe();
+	public String event(
+			@CliOption(key = { "", "event" }, mandatory = true, help = "The event") final OrderEvent event) {
+		getStateMachine().sendEvent(Mono.just(MessageBuilder.withPayload(event).build())).subscribe();
 		return "Event " + event + " send";
 	}
 }

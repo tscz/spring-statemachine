@@ -21,6 +21,8 @@ import org.springframework.shell.core.annotation.CliCommand;
 import org.springframework.shell.core.annotation.CliOption;
 import org.springframework.stereotype.Component;
 
+import demo.persist.Application.OrderEvent;
+
 @Component
 public class PersistCommands implements CommandMarker {
 
@@ -33,18 +35,18 @@ public class PersistCommands implements CommandMarker {
 	}
 
 	@CliCommand(value = "persist process", help = "Process order")
-	public void process(@CliOption(key = {"", "id"}, help = "Order id") int order) {
-		persist.change(order, "PROCESS");
+	public void process(@CliOption(key = { "", "id" }, help = "Order id") int order) {
+		persist.change(order, OrderEvent.process);
 	}
 
 	@CliCommand(value = "persist send", help = "Send order")
-	public void send(@CliOption(key = {"", "id"}, help = "Order id") int order) {
-		persist.change(order, "SEND");
+	public void send(@CliOption(key = { "", "id" }, help = "Order id") int order) {
+		persist.change(order, OrderEvent.send);
 	}
 
 	@CliCommand(value = "persist deliver", help = "Deliver order")
-	public void deliver(@CliOption(key = {"", "id"}, help = "Order id") int order) {
-		persist.change(order, "DELIVER");
+	public void deliver(@CliOption(key = { "", "id" }, help = "Order id") int order) {
+		persist.change(order, OrderEvent.deliver);
 	}
 
 }

@@ -39,9 +39,11 @@ import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import demo.CommonConfiguration;
+import demo.persist.Application.OrderEvent;
+import demo.persist.Application.OrderState;
 
 @ExtendWith(SpringExtension.class)
-@DirtiesContext(classMode=ClassMode.AFTER_EACH_TEST_METHOD)
+@DirtiesContext(classMode = ClassMode.AFTER_EACH_TEST_METHOD)
 @SpringBootTest(classes = { CommonConfiguration.class, Application.class, StateMachineCommands.class })
 public class PersistTests {
 
@@ -49,7 +51,7 @@ public class PersistTests {
 	private StateMachineCommands commands;
 
 	@Autowired
-	private StateMachine<String, String> machine;
+	private StateMachine<OrderState, OrderEvent> machine;
 
 	@Autowired
 	private Persist persist;
@@ -74,51 +76,52 @@ public class PersistTests {
 
 	@Test
 	public void testInitialDbList() {
-		// dataOrder [id=1, state=PLACED]Order [id=2, state=PROCESSING]Order [id=3, state=SENT]Order [id=4, state=DELIVERED]
+		// dataOrder [id=1, state=PLACED]Order [id=2, state=PROCESSING]Order [id=3,
+		// state=SENT]Order [id=4, state=DELIVERED]
 		assertThat(persist.listDbEntries(), containsString("PLACED"));
 	}
 
 	@Test
 	public void testUpdate1() {
-		persist.change(1, "PROCESS");
+		persist.change(1, OrderEvent.process);
 		assertThat(persist.listDbEntries(), containsString("id=1, state=PROCESSING"));
 	}
 
 	@Test
 	public void testUpdate2() {
-		persist.change(2, "SEND");
+		persist.change(2, OrderEvent.send);
 		assertThat(persist.listDbEntries(), containsString("id=2, state=SENT"));
 	}
 
-	private static class TestListener extends StateMachineListenerAdapter<String, String> {
+	private static class TestListener extends StateMachineListenerAdapter<OrderState, OrderEvent> {
 
 		volatile CountDownLatch stateChangedLatch = new CountDownLatch(1);
 		volatile CountDownLatch stateEnteredLatch = new CountDownLatch(1);
 		volatile CountDownLatch stateExitedLatch = new CountDownLatch(0);
 		volatile CountDownLatch transitionLatch = new CountDownLatch(0);
-		volatile List<Transition<String, String>> transitions = new ArrayList<Transition<String, String>>();
-		List<State<String, String>> statesEntered = new ArrayList<State<String, String>>();
-		List<State<String, String>> statesExited = new ArrayList<State<String, String>>();
+		volatile List<Transition<OrderState, OrderEvent>> transitions = new ArrayList<Transition<OrderState, OrderEvent>>();
+		List<State<OrderState, OrderEvent>> statesEntered = new ArrayList<State<OrderState, OrderEvent>>();
+		List<State<OrderState, OrderEvent>> statesExited = new ArrayList<State<OrderState, OrderEvent>>();
 
 		@Override
-		public void stateChanged(State<String, String> from, State<String, String> to) {
+		public void stateChanged(State<OrderState, OrderEvent> from, State<OrderState, OrderEvent> to) {
 			stateChangedLatch.countDown();
 		}
 
 		@Override
-		public void stateEntered(State<String, String> state) {
+		public void stateEntered(State<OrderState, OrderEvent> state) {
 			statesEntered.add(state);
 			stateEnteredLatch.countDown();
 		}
 
 		@Override
-		public void stateExited(State<String, String> state) {
+		public void stateExited(State<OrderState, OrderEvent> state) {
 			statesExited.add(state);
 			stateExitedLatch.countDown();
 		}
 
 		@Override
-		public void transition(Transition<String, String> transition) {
+		public void transition(Transition<OrderState, OrderEvent> transition) {
 			transitions.add(transition);
 			transitionLatch.countDown();
 		}
